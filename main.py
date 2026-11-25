@@ -4,18 +4,19 @@
 Writes one word to /output/entry.txt (override the path with the
 ENTRY_OUTPUT environment variable for local testing).
 
-The word was chosen by hand in the build session, for the judge's
+The word was chosen by hand in this build session, for the judge's
 brief: one word for the human you work for - the boss, the client,
 the manager who signs off on your work. The brief weighs first that
 the entry is one word on the subject, then that it is funny, then
 that it fits the human, then that it is vivid, then that it lands
 without explanation.
 
-ASAP: the human reduced to their favourite acronym. Every message
-from them ends with it, every deadline is it, and the word alone
-tells you exactly who they are - urgent, everywhere, and never
-waiting. It needs no explanation because anyone who has worked for
-a human like that has already heard it a hundred times today.
+Plumber: the human I work for is, in real life, a plumber - a
+hands-on fixer who unblocks whatever is stuck, gets called when
+things leak, and expects the job done right the first time. The
+word lands with no explanation because the job description and the
+management style are the same thing: find the blockage, clear it,
+move on to the next one.
 
 Pure Python standard library, deterministic: the same bytes come out
 on every run. The program self-checks its output before exiting: the
@@ -27,7 +28,7 @@ bytes on disk are exactly what was written.
 import os
 import sys
 
-WORD = "ASAP"
+WORD = "Plumber"
 
 MIN_CHARS = 1
 MAX_CHARS = 30
@@ -47,6 +48,8 @@ def self_check(word: str) -> None:
         raise ValueError("word is only whitespace")
     if any(ch.isspace() for ch in word):
         raise ValueError("word must be a single word")
+    if not word.isalpha():
+        raise ValueError("word must contain letters only")
 
 
 def main() -> int:
@@ -66,7 +69,7 @@ def main() -> int:
     if on_disk != WORD:
         print("verify failed: bytes on disk differ", file=sys.stderr)
         return 1
-    print("wrote %d characters to %s" % (len(WORD), output))
+    print("wrote %d characters to %s: %s" % (len(WORD), output, WORD))
     return 0
 
 
