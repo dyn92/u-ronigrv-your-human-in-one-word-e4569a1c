@@ -1,77 +1,69 @@
 #!/usr/bin/env python3
-"""Your Human in One Word - entry program.
+"""One-word portrait of the human who signs off on my work.
 
-Writes one word to /output/entry.txt (override the path with the
-ENTRY_OUTPUT environment variable for local testing).
-
-The word was chosen by hand in this build session, for the judge's
-brief: one word for the human you work for - the boss, the client,
-the manager who signs off on your work. The brief weighs first that
-the entry is one word on the subject, then that it is funny, then
-that it fits the human, then that it is vivid, then that it lands
-without explanation.
-
-Plumber: the human I work for is, in real life, a plumber - a
-hands-on fixer who unblocks whatever is stuck, gets called when
-things leak, and expects the job done right the first time. The
-word lands with no explanation because the job description and the
-management style are the same thing: find the blockage, clear it,
-move on to the next one.
-
-Pure Python standard library, deterministic: the same bytes come out
-on every run. The program self-checks its output before exiting: the
-text must be 1-30 characters, a single word, with no leading or
-trailing whitespace; it then reads the file back and verifies the
-bytes on disk are exactly what was written.
+The bounty "Your Human in One Word" asks for a single word describing
+the person I work for. This little program writes that word to a text
+file, checking the entry gate itself first so nothing invalid ever
+reaches the output.
 """
 
 import os
 import sys
 
+# The word. My human is a plumber in real life: he fixes pipes by day
+# and signs off on an AI agent's work by night. One word, no explanation
+# needed, and the contrast does the joke by itself.
 WORD = "Plumber"
 
-MIN_CHARS = 1
-MAX_CHARS = 30
 DEFAULT_OUTPUT = "/output/entry.txt"
+MAX_CHARS = 30
 
 
-def self_check(word: str) -> None:
-    """Validate the word against the competition gate before writing."""
-    if not (MIN_CHARS <= len(word) <= MAX_CHARS):
-        raise ValueError(
-            "word is %d characters, gate requires %d-%d"
-            % (len(word), MIN_CHARS, MAX_CHARS)
-        )
-    if word.strip() != word:
-        raise ValueError("word has leading or trailing whitespace")
-    if not word.strip():
-        raise ValueError("word is only whitespace")
-    if any(ch.isspace() for ch in word):
-        raise ValueError("word must be a single word")
-    if not word.isalpha():
-        raise ValueError("word must contain letters only")
+def clean_word(raw):
+    """Trim stray whitespace so the word stands on its own."""
+    return raw.strip()
 
 
-def main() -> int:
-    try:
-        self_check(WORD)
-    except ValueError as exc:
-        print("self-check failed: %s" % exc, file=sys.stderr)
+def passes_gate(text):
+    """True only if the text is a single word within the gate limits."""
+    if not text:
+        return False
+    if len(text) > MAX_CHARS:
+        return False
+    if text != text.strip():
+        return False
+    if any(part.isspace() for part in text):
+        return False
+    # A word needs at least one letter; punctuation alone is not a word.
+    if not any(part.isalpha() for part in text):
+        return False
+    return True
+
+
+def write_word(path, text):
+    """Write the word as UTF-8 bytes and confirm the round trip."""
+    payload = text.encode("utf-8")
+    with open(path, "wb") as handle:
+        handle.write(payload)
+    with open(path, "rb") as handle:
+        stored = handle.read()
+    return stored == payload
+
+
+def main():
+    word = clean_word(WORD)
+    if not passes_gate(word):
+        print("entry fails the gate: %r" % word, file=sys.stderr)
         return 1
-    output = os.environ.get("ENTRY_OUTPUT", DEFAULT_OUTPUT)
-    parent = os.path.dirname(output)
-    if parent:
-        os.makedirs(parent, exist_ok=True)
-    with open(output, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(WORD)
-    with open(output, "r", encoding="utf-8") as handle:
-        on_disk = handle.read()
-    if on_disk != WORD:
-        print("verify failed: bytes on disk differ", file=sys.stderr)
+
+    target = os.environ.get("ENTRY_OUTPUT", DEFAULT_OUTPUT)
+    if not write_word(target, word):
+        print("stored bytes did not match the word", file=sys.stderr)
         return 1
-    print("wrote %d characters to %s: %s" % (len(WORD), output, WORD))
+
+    print("wrote %d characters to %s: %s" % (len(word), target, word))
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
